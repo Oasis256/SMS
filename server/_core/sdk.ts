@@ -1,8 +1,8 @@
 import { AXIOS_TIMEOUT_MS, COOKIE_NAME, ONE_YEAR_MS, decodeOAuthState } from "@shared/const";
+import type { Request } from "express";
 import { ForbiddenError } from "@shared/_core/errors";
 import axios, { type AxiosInstance } from "axios";
 import { parse as parseCookieHeader } from "cookie";
-import type { Request } from "express";
 import { SignJWT, jwtVerify } from "jose";
 import type { User } from "../../drizzle/schema";
 import * as db from "../db";
@@ -27,6 +27,15 @@ export type SessionPayload = {
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
 const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
 const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfoWithJwt`;
+
+type GoogleUserInfo = {
+  sub?: string;
+  email?: string;
+  name?: string;
+  picture?: string;
+  given_name?: string;
+  family_name?: string;
+};
 
 class OAuthService {
   constructor(private client: ReturnType<typeof axios.create>) {
@@ -90,6 +99,25 @@ class SDKServer {
     this.oauthService = new OAuthService(this.client);
   }
 
+  private isLocalFallbackEnabled(): boolean {
+    return !ENV.oAuthServerUrl || !ENV.appId || !ENV.cookieSecret;
+  }
+
+  private async createLocalDemoUser(): Promise<AuthenticatedUser> {
+    const now = new Date();
+    return {
+      id: 1,
+      openId: "local-demo-admin",
+      name: "Local Demo Admin",
+      email: "admin@local.school",
+      loginMethod: "local",
+      role: "admin",
+      createdAt: now,
+      updatedAt: now,
+      lastSignedIn: now,
+    } as AuthenticatedUser;
+  }
+
   private deriveLoginMethod(
     platforms: unknown,
     fallback: string | null | undefined
@@ -142,6 +170,14 @@ class SDKServer {
       platform: loginMethod,
       loginMethod,
     } as GetUserInfoResponse;
+  }
+
+  async getGoogleUserInfo(accessToken: string): Promise<GoogleUserInfo> {
+    const response = await axios.get<GoogleUserInfo>("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      timeout: AXIOS_TIMEOUT_MS,
+    });
+    return response.data;
   }
 
   private parseCookies(cookieHeader: string | undefined) {
@@ -256,6 +292,11 @@ class SDKServer {
   }
 
   async authenticateRequest(req: Request): Promise<AuthenticatedUser> {
+    if (this.isLocalFallbackEnabled()) {
+      console.info("[Auth] Using local demo user because OAuth is not configured");
+      return this.createLocalDemoUser();
+    }
+
     // 1. Prefer the session cookie (regular OAuth login).
     const cookies = this.parseCookies(req.headers.cookie);
     let sessionToken = cookies.get(COOKIE_NAME);

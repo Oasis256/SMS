@@ -33,9 +33,28 @@ export function registerOAuthRoutes(app: Express) {
 
     try {
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);
-      const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
+      const googleAuthEnabled = process.env.VITE_GOOGLE_AUTH_ENABLED === "true";
+      let userInfo: { openId?: string; name?: string; email?: string; loginMethod?: string | null; platform?: string | null } | null = null;
 
-      if (!userInfo.openId) {
+      if (googleAuthEnabled) {
+        const googleUser = await sdk.getGoogleUserInfo(tokenResponse.accessToken);
+        const googleOpenId = googleUser.sub || googleUser.email;
+        if (!googleOpenId) {
+          res.status(400).json({ error: "google user info missing" });
+          return;
+        }
+        userInfo = {
+          openId: googleOpenId,
+          name: googleUser.name || `${googleUser.given_name || ""} ${googleUser.family_name || ""}`.trim(),
+          email: googleUser.email ?? null,
+          loginMethod: "google",
+          platform: "google",
+        };
+      } else {
+        userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
+      }
+
+      if (!userInfo?.openId) {
         res.status(400).json({ error: "openId missing from user info" });
         return;
       }

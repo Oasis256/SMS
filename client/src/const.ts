@@ -13,8 +13,42 @@ export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 // with "invalid oauth state". It returns void by design, so there is no URL to
 // stash across renders.
 export const startLogin = () => {
+  const googleAuthEnabled = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === "true";
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
   const appId = import.meta.env.VITE_APP_ID;
+
+  if (googleAuthEnabled) {
+    const redirectUri = `${window.location.origin}/api/oauth/callback`;
+    const nonce = crypto.randomUUID();
+    document.cookie = `${OAUTH_STATE_COOKIE}=${nonce}; Path=/; Max-Age=600; SameSite=None; Secure`;
+    const state = encodeOAuthState({ redirectUri, nonce });
+
+    const googleAuthUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+    googleAuthUrl.searchParams.set("client_id", import.meta.env.VITE_GOOGLE_CLIENT_ID || "");
+    googleAuthUrl.searchParams.set("redirect_uri", redirectUri);
+    googleAuthUrl.searchParams.set("response_type", "code");
+    googleAuthUrl.searchParams.set("scope", "openid email profile");
+    googleAuthUrl.searchParams.set("state", state);
+    googleAuthUrl.searchParams.set("access_type", "online");
+    googleAuthUrl.searchParams.set("prompt", "select_account");
+
+    window.location.href = googleAuthUrl.toString();
+    return;
+  }
+
+  if (!oauthPortalUrl || !appId) {
+    window.localStorage.setItem("manus-runtime-user-info", JSON.stringify({
+      id: 1,
+      openId: "local-demo-admin",
+      name: "Local Demo Admin",
+      email: "admin@local.school",
+      loginMethod: "local",
+      role: "admin",
+    }));
+    window.location.href = "/dashboard";
+    return;
+  }
+
   const redirectUri = `${window.location.origin}/api/oauth/callback`;
 
   const nonce = crypto.randomUUID();

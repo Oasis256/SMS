@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import { COOKIE_NAME, SCHOOL_ROLES, ROLE_LABELS, ATTENDANCE_STATUS_COLORS, EXPENSE_STATUS_LABELS, SESSION_TIMEOUT_MS, MAX_LOGIN_ATTEMPTS } from "../shared/const";
 import type { TrpcContext } from "./_core/context";
+import { sdk } from "./_core/sdk";
 
 type CookieCall = { name: string; options: Record<string, unknown> };
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
@@ -90,6 +91,15 @@ describe("School Management System - Auth Router", () => {
     expect(result).toBeDefined();
     expect(result?.name).toBe("Test Admin");
     expect(result?.role).toBe("admin");
+  });
+
+  it("returns a local demo user when OAuth is not configured", async () => {
+    const user = await sdk.authenticateRequest({ headers: {} } as any);
+    expect(user).toMatchObject({
+      role: "admin",
+      openId: "local-demo-admin",
+      name: "Local Demo Admin",
+    });
   });
 
   it("auth.me returns null for unauthenticated context", async () => {
