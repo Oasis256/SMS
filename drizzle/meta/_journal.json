@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1784028915319,
+      "tag": "0000_amusing_photon",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1784029273811,
+      "tag": "0001_majestic_shiver_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1784032338861,
+      "tag": "0002_little_the_leader",
+      "breakpoints": true
+    }
+  ]
+}
