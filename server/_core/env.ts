@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 // export const ENV = {
 //   appId: process.env.VITE_APP_ID ?? process.env.GOOGLE_CLIENT_ID ?? "",
 //   cookieSecret: process.env.JWT_SECRET ?? "local-dev-secret",

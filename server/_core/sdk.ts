@@ -100,7 +100,8 @@ class SDKServer {
   }
 
   private isLocalFallbackEnabled(): boolean {
-    return !ENV.cookieSecret;
+    const secret = ENV.cookieSecret?.trim();
+    return !secret || secret === "your-super-secret-jwt-key-change-in-production" || secret === "local-dev-secret";
   }
 
   private async createLocalDemoUser(): Promise<AuthenticatedUser> {
@@ -316,6 +317,22 @@ class SDKServer {
 
     if (!session) {
       throw ForbiddenError("Invalid session cookie");
+    }
+
+    const dbConnection = await db.getDb();
+    if (!dbConnection) {
+      console.warn("[Auth] Database unavailable; returning a limited session user without DB sync");
+      return {
+        id: 0,
+        openId: session.openId,
+        name: session.name,
+        email: null,
+        loginMethod: "google",
+        role: "user",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      } as AuthenticatedUser;
     }
 
     if (session.openId.startsWith(CRON_OPEN_ID_PREFIX)) {

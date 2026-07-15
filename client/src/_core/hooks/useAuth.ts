@@ -27,6 +27,14 @@ export function useAuth(options?: UseAuthOptions) {
     },
   });
 
+  const clearClientAuthState = useCallback(() => {
+    try {
+      localStorage.removeItem("manus-runtime-user-info");
+      sessionStorage.removeItem("manus-cookie");
+    } catch {}
+    utils.auth.me.setData(undefined, null);
+  }, [utils]);
+
   const logout = useCallback(async () => {
     try {
       await logoutMutation.mutateAsync();
@@ -39,16 +47,13 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
-      // Clear the Preview auto-login token mirrored into sessionStorage, so
-      // header-based sessions (Safari ITP / WebView) are logged out too. The
-      // backend cookie is cleared by the logout mutation.
-      try {
-        sessionStorage.removeItem("manus-cookie");
-      } catch {}
-      utils.auth.me.setData(undefined, null);
+      clearClientAuthState();
       await utils.auth.me.invalidate();
+      if (typeof window !== "undefined") {
+        window.location.href = "/";
+      }
     }
-  }, [logoutMutation, utils]);
+  }, [clearClientAuthState, logoutMutation, utils]);
 
   const state = useMemo(() => {
     localStorage.setItem(
@@ -84,15 +89,7 @@ export function useAuth(options?: UseAuthOptions) {
     const googleAuthEnabled = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === "true";
     const hasOAuthConfig = Boolean(import.meta.env.VITE_OAUTH_PORTAL_URL && import.meta.env.VITE_APP_ID) || googleAuthEnabled;
     if (!hasOAuthConfig) {
-      window.localStorage.setItem("manus-runtime-user-info", JSON.stringify({
-        id: 1,
-        openId: "local-demo-admin",
-        name: "Local Demo Admin",
-        email: "admin@local.school",
-        loginMethod: "local",
-        role: "admin",
-      }));
-      window.location.href = "/dashboard";
+      window.location.href = "/";
       return;
     }
 

@@ -37,15 +37,7 @@ export const startLogin = () => {
   }
 
   if (!oauthPortalUrl || !appId) {
-    window.localStorage.setItem("manus-runtime-user-info", JSON.stringify({
-      id: 1,
-      openId: "local-demo-admin",
-      name: "Local Demo Admin",
-      email: "admin@local.school",
-      loginMethod: "local",
-      role: "admin",
-    }));
-    window.location.href = "/dashboard";
+    window.location.href = "/";
     return;
   }
 
