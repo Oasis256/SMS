@@ -100,7 +100,7 @@ class SDKServer {
   }
 
   private isLocalFallbackEnabled(): boolean {
-    return !ENV.oAuthServerUrl || !ENV.appId || !ENV.cookieSecret;
+    return !ENV.cookieSecret;
   }
 
   private async createLocalDemoUser(): Promise<AuthenticatedUser> {
@@ -292,8 +292,9 @@ class SDKServer {
   }
 
   async authenticateRequest(req: Request): Promise<AuthenticatedUser> {
-    if (this.isLocalFallbackEnabled()) {
-      console.info("[Auth] Using local demo user because OAuth is not configured");
+    const hasSessionCookie = Boolean(req.headers.cookie && req.headers.cookie.includes(COOKIE_NAME));
+    if (this.isLocalFallbackEnabled() && !hasSessionCookie) {
+      console.info("[Auth] Using local demo user because no session secret is configured");
       return this.createLocalDemoUser();
     }
 

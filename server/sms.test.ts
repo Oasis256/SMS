@@ -93,13 +93,8 @@ describe("School Management System - Auth Router", () => {
     expect(result?.role).toBe("admin");
   });
 
-  it("returns a local demo user when OAuth is not configured", async () => {
-    const user = await sdk.authenticateRequest({ headers: {} } as any);
-    expect(user).toMatchObject({
-      role: "admin",
-      openId: "local-demo-admin",
-      name: "Local Demo Admin",
-    });
+  it("rejects an invalid session when no valid auth context exists", async () => {
+    await expect(sdk.authenticateRequest({ headers: {} } as any)).rejects.toThrow("Invalid session cookie");
   });
 
   it("auth.me returns null for unauthenticated context", async () => {
